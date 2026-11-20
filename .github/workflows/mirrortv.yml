@@ -31,7 +31,7 @@ jobs:
             nasm yasm pkg-config
 
       - name: Preparar Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Instalar SDK y NDK
         run: |
