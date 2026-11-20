@@ -36,10 +36,14 @@ jobs:
       - name: Instalar SDK y NDK
         run: |
           sdkmanager --install \
-            "platforms;android-37" \
+            "platforms;android-37.0" \
             "ndk;27.0.12077973" \
             "cmake;3.22.1"
 
+          if [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+            ln -s "$ANDROID_HOME/platforms/android-37.0" \
+              "$ANDROID_HOME/platforms/android-37"
+          fi
       - name: Configurar herramientas
         run: |
           chmod +x ./gradlew
