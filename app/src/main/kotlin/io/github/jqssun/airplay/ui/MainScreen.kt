@@ -615,15 +615,40 @@ private fun OverviewContent(
         if (tv) startFocus.requestFocus()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // content area
+    // Mirror TV: dark, minimal landing screen. Server and video logic remain unchanged.
+    val background = Color(0xFF10151F)
+    val panel = Color(0xFF1D293A)
+    val muted = Color(0xFFAEB8C6)
+    val accent = Color(0xFF9ACFFF)
+    val online = Color(0xFF64DBAA)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(background)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Cast, contentDescription = null, tint = accent, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(12.dp))
+                Text("Mirror TV", style = MaterialTheme.typography.titleLarge, color = Color.White,
+                    fontWeight = FontWeight.SemiBold)
+            }
+            Text("AirPlay", style = MaterialTheme.typography.labelMedium, color = muted)
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(16.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .padding(vertical = 12.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(panel),
             contentAlignment = Alignment.Center
         ) {
             val connecting = state == ServerState.RUNNING && connections > 0 &&
@@ -631,50 +656,67 @@ private fun OverviewContent(
             if (showAudioMode && state == ServerState.RUNNING && connections > 0) {
                 NowPlayingContent(viewModel)
             } else {
+                // Keep the surface alive for mirroring and optional idle preview.
                 if (state == ServerState.RUNNING && (mirroringActive || idlePreview)) {
                     video()
                 }
                 if (state != ServerState.RUNNING || connections == 0) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = if (connections > 0) Icons.Default.CastConnected else Icons.Default.Cast,
+                            imageVector = Icons.Default.Cast,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            modifier = Modifier.size(68.dp),
+                            tint = accent
+                        )
+                        Spacer(Modifier.height(24.dp))
+                        Text(
+                            text = if (state == ServerState.RUNNING && !grant)
+                                "Listo para conectar" else when {
+                                    grant -> "Permiso de red necesario"
+                                    state == ServerState.STOPPED -> "Receptor detenido"
+                                    else -> "No se pudo iniciar el receptor"
+                                },
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = if (grant) stringResource(R.string.local_network_desc) else when (state) {
-                                ServerState.STOPPED -> stringResource(R.string.server_stopped)
-                                ServerState.RUNNING -> stringResource(R.string.waiting_for_connection)
-                                ServerState.ERROR -> stringResource(R.string.error_starting_server)
-                            },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            text = if (state == ServerState.RUNNING && !grant)
+                                "Abrí Duplicar pantalla en tu iPhone y seleccioná este receptor."
+                            else if (grant)
+                                stringResource(R.string.local_network_desc)
+                            else "Utilizá el botón inferior para iniciar el receptor.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = muted,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = 24.dp)
+                        )
+                        Spacer(Modifier.height(20.dp))
+                        Text(
+                            text = if (state == ServerState.RUNNING && !grant)
+                                "● Receptor disponible" else "● Sin conexión",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (state == ServerState.RUNNING && !grant) online else muted
                         )
                     }
                 } else if (connecting) {
                     Text(
                         text = stringResource(R.string.waiting_for_playback),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
                 if (state == ServerState.RUNNING && mirroringActive) {
                     Row(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
                         IconButton(onClick = onPip, modifier = Modifier.dpadFocus()) {
-                            Icon(
-                                painterResource(R.drawable.ic_pip), contentDescription = stringResource(R.string.cd_pip),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
+                            Icon(painterResource(R.drawable.ic_pip),
+                                contentDescription = stringResource(R.string.cd_pip), tint = Color.White)
                         }
                         IconButton(onClick = onFullscreen, modifier = Modifier.dpadFocus()) {
-                            Icon(
-                                Icons.Default.Fullscreen, contentDescription = stringResource(R.string.cd_fullscreen),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
+                            Icon(Icons.Default.Fullscreen,
+                                contentDescription = stringResource(R.string.cd_fullscreen), tint = Color.White)
                         }
                     }
                 }
@@ -695,76 +737,49 @@ private fun OverviewContent(
                     visible = showRes && connections > 0,
                     modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp)
                 ) {
-                    Text(
-                        text = videoResolution,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
+                    Text(text = videoResolution, style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.7f))
                 }
             }
         }
 
-        // controls
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                .background(panel).padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = serverName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        val statusColor by animateColorAsState(
-                            if (grant) MaterialTheme.colorScheme.error else when (state) {
-                                ServerState.RUNNING -> MaterialTheme.colorScheme.primary
-                                ServerState.ERROR -> MaterialTheme.colorScheme.error
-                                ServerState.STOPPED -> MaterialTheme.colorScheme.onSurfaceVariant
-                            }, label = "status"
-                        )
-                        Text(
-                            text = if (grant) stringResource(R.string.local_network_label) else when (state) {
-                                ServerState.RUNNING -> stringResource(R.string.connected_count, connections)
-                                ServerState.ERROR -> stringResource(R.string.error_label)
-                                ServerState.STOPPED -> stringResource(R.string.stopped_label)
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = statusColor
-                        )
-                    }
-
-                    val settings = localNetwork == LocalNetworkAccess.SETTINGS
-                    val (icon, label, action) = when {
-                        grant -> Triple(
-                            if (settings) Icons.Default.Settings else Icons.Default.LockOpen,
-                            if (settings) R.string.btn_open_settings else R.string.btn_allow,
-                            onLocalNetwork
-                        )
-                        state == ServerState.RUNNING -> Triple(Icons.Default.Stop, R.string.btn_stop, viewModel::stopServer)
-                        else -> Triple(Icons.Default.PlayArrow, R.string.btn_start, viewModel::startServer)
-                    }
-                    FilledTonalButton(
-                        onClick = action,
-                        modifier = Modifier.dpadFocus().focusRequester(startFocus)
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(label))
-                    }
-                }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Dispositivo AirPlay", style = MaterialTheme.typography.labelSmall, color = muted)
+                Spacer(Modifier.height(4.dp))
+                Text(serverName, style = MaterialTheme.typography.titleMedium,
+                    color = Color.White, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = if (grant) stringResource(R.string.local_network_label) else when (state) {
+                        ServerState.RUNNING -> stringResource(R.string.connected_count, connections)
+                        ServerState.ERROR -> stringResource(R.string.error_label)
+                        ServerState.STOPPED -> stringResource(R.string.stopped_label)
+                    },
+                    color = if (state == ServerState.RUNNING && !grant) online else muted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            val settings = localNetwork == LocalNetworkAccess.SETTINGS
+            val (icon, label, action) = when {
+                grant -> Triple(
+                    if (settings) Icons.Default.Settings else Icons.Default.LockOpen,
+                    if (settings) R.string.btn_open_settings else R.string.btn_allow,
+                    onLocalNetwork
+                )
+                state == ServerState.RUNNING -> Triple(Icons.Default.Stop, R.string.btn_stop, viewModel::stopServer)
+                else -> Triple(Icons.Default.PlayArrow, R.string.btn_start, viewModel::startServer)
+            }
+            FilledTonalButton(onClick = action,
+                modifier = Modifier.dpadFocus().focusRequester(startFocus)) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(label))
             }
         }
     }
