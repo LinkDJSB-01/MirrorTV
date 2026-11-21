@@ -30,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.github.jqssun.airplay"
+        applicationId = "com.linkdjsb.mirrortv"
         minSdk = 23
         targetSdk = 37
         versionCode = 36
